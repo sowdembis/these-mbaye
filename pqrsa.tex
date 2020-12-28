@@ -35,7 +35,7 @@
 \begin{abstract}
 In this paper, we present the post quantum version of the standard PSS-R (Probabilistic Signature Scheme with message Recovery) signature scheme, called pqPSS. Our scheme is also an RSA based signature scheme but with a large modulus $n$ which is the product of many small primes. It also remains secure against chosen message attack in the random oracle model , even in the presence of an attacker that has access to a quantum computer. The security tightness of our scheme is better than the standard ones because for a random of 5 bits, we have $\varepsilon_{\mathcal{R}}=0.96875 \ \varepsilon_{\mathcal{A}}$, where $\varepsilon_{\mathcal{R}}$  is the success probability of a reduction algorithm $\mathcal{R}$ that is able to invert RSA by using an attacker $\mathcal{A}$ that breaks pqPSS with probability $\varepsilon_{\mathcal{A}}$. But for PSS-R, it is not possible to reach this level of security with random of size $5$. We remark also, that the success probability of the simulation is independent from the number of signing and hashing oracle queries. For pqPSS, it is possible to sign and recover a message with a large size while keeping the size of the random salt also large, but this fact is not possible for PSS-R. This new signature scheme is more secure than PSS-R relatively to all known reductions, but it is less efficient.
 \end{abstract}
-{\it \textbf{keywords:} post quantum RSA, signature scheme, PSS, security reduction, CMA}
+{\it \textbf{keywords:} post quantum RSA, signature scheme, PSS, security reduction, CMA, pqPSS}
 \section{Introduction}
 The threat to existing public key systems posed by Shor's \cite{Shor} algorithm has generated considerable interest in post-quantum cryptosystems, namely systems that remain secure in the presence of a quantum adversary. Then, with quantum computers, Shor's algorithm factors an RSA public key $n$ almost as quickly as the legitimate RSA user can decrypt. However, it sounds important to adjust the RSA parameters so that all known quantum attack algorithms are infeasible while signature and verification remain feasible.  A promising direction is post-quantum RSA proposed by D.J. Bernstein and al. in \cite{pqRSA}. It is a variant of the cryptosystem RSA in order to stop Shor's algorithm by using extremely large RSA key. The private key here is many primes, say a list of $K$ (a power of 2) primes and the public key is the product of these primes. Our goal is to make use this extremely large keys for establishing a secure signature scheme called post-quantum PSS (pqPSS). Its security relatively close to that of RSA will be proven in the random oracle model.\\
 Security proof of signature scheme generally proceeds by demonstrating that if a polynomial-time adversary $\mathcal{A}$ is able to break the signature scheme, it can be used by a reduction algorithm $\mathcal{R}$ to invert in polynomial time some related one-way-function.\\
@@ -204,7 +204,7 @@ To sign a message $m$, the signer proceeds as follows:
 \end{enumerate}
 
 \paragraph{Verification algorithm}  $V(p_{key},r,\sigma)$\\
-For a given signature $(r,\sigma)$, to verify, the verifier proceeds as follows:  
+For a given signature $(r,\sigma)$, to verify, the verifier proceeds as follows:
 \begin{enumerate}
 \item compute $e=T(r)$, $y= \sigma^e \ mod \ n$ and parse $y$ as $b||w||m^*$ ($b$ is the first bit of $y$,  $w$ the next $k_w$ bits and $m^*$ the remaining bits);
 \item compute $m= G(e||w)\oplus m^*$;
@@ -393,18 +393,18 @@ after time $\tau_{\mathcal{A}}$,
  \end{itemize}
 Summing up, $\mathcal{R}$ succeeds with probability $\varepsilon_{\mathcal{R}} = \frac{N}{2^{|r|}}.\varepsilon_{\mathcal{A}} $
   and time bound is given by
-  
+
   \vspace{0.2cm}
-  
+
    $\tau_{\mathcal{R}}\leq \tau_{\mathcal{A}} + q_{T}\mathcal{O}(1) + q_{G}(q_{H}+q_{T})\mathcal{O}(1)+ (q_{H}+q_{sig}+2)\mathcal{O}(k^{3})$
-   
+
    \vspace{0.2cm}
-   
+
  where $2^{|r|}$ is the number of random allowed to use for exponentiation in SPSS signature.
 
 To have $\varepsilon_{\mathcal{R}} = \varepsilon_{\mathcal{A}}(1-\frac{1}{2^{|r|}}) $ it will suffice to choose the maximal value of $N=2^{|r|}-1$.
 \section{Conclusion}
-We have described a new signature scheme whose security can be proven in the random oracle model for both quantum and classical computers. This is a variant of PSS-R designed by Bellare and Rogaway but with a random salt generated to compute the RSA exponentiation for each signature. Our security reduction is a better security proof for PSS-R, in which a much shorter random salt (a random of size 5) is sufficient to achieve the same security. 
+We have described a new signature scheme whose security can be proven in the random oracle model for both quantum and classical computers. This is a variant of PSS-R designed by Bellare and Rogaway but with a random salt generated to compute the RSA exponentiation for each signature. Our security reduction is a better security proof for PSS-R, in which a much shorter random salt (a random of size 5) is sufficient to achieve the same security.
 
 
 
@@ -454,6 +454,6 @@ adaptive chosen-message attacks}, SIAM Journal of computing, 17(2), pp. 281-308,
 \emph{Post quantum RSA},
 International Workshop on Post-Quantum Cryptography, 311-329, 2017.
 \bibitem{Shor} P. Shor,
-\emph{ Polynomial-Time Algorithms for Prime Factorization and Discrete Logarithms on a Quantum Computer},  SIAM J. Comput., 26 (5), 1997, pp.1484-1509. 
+\emph{ Polynomial-Time Algorithms for Prime Factorization and Discrete Logarithms on a Quantum Computer},  SIAM J. Comput., 26 (5), 1997, pp.1484-1509.
 \end{thebibliography}
-\end{document}
+\end{document} 
