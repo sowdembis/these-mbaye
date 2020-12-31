@@ -1,0 +1,469 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{tikz}
+\usetikzlibrary{decorations.markings}
+%\usepackage{tkz-base,tkz-fct}
+%\usetikzlibrary{automata, arrows}
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{pgfplots}
+\usepackage{amssymb}
+\usepackage{amstext}
+\usepackage{authblk}
+\usepackage{multicol}
+\usepackage{paralist}
+\usepackage{url}
+\usepackage{bm}
+\usepackage{thmtools,thm-restate}
+\usepackage[centertags]{amsmath}
+\usepackage{algorithm,algorithmic}
+\usepackage{hyperref}
+\usepackage{amsthm}
+%\usepackage[centertags]{amsmath}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+%\newtheorem{proof}[theorem]{Proof}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{lemma}[theorem]{Lemma}
+
+\newtheorem{corollary}[theorem]{Corollary}
+
+\begin{document}
+\title{The post-quantum Probabilistic Signature Scheme}
+\maketitle
+\begin{abstract}
+In this paper, we present a post quantum version of the standard PSS-R (Probabilistic Signature Scheme with message Recovery) signature scheme, called pqPSS. Our scheme is also an RSA based signature scheme but with a large modulus $n$ which is the product of many small primes. It also remains secure against chosen message attack in the random oracle model , even in the presence of an attacker that has access to a quantum computer. The security tightness of our scheme is better than the standard ones because for a random of 5 bits, we have $\varepsilon_{\mathcal{R}}=0.96875 \ \varepsilon_{\mathcal{A}}$, where $\varepsilon_{\mathcal{R}}$  is the success probability of a reduction algorithm $\mathcal{R}$ that is able to invert RSA by using an attacker $\mathcal{A}$ that breaks pqPSS with probability $\varepsilon_{\mathcal{A}}$. But for PSS-R, it is not possible to reach this level of security with random of size $5$. We have also the success probability of the simulation which is independent from the number of signing and hashing oracle queries. For pqPSS, it is possible to sign and recover a message with a large size while keeping the size of the random salt also large, but this fact is not possible for PSS-R. This new signature scheme is more secure than PSS-R relatively to all known reductions, but it is less efficient.
+\end{abstract}
+{\it \textbf{keywords:} post quantum RSA, signature scheme, PSS, security reduction, CMA}
+\section{Introduction}
+The threat to existing public key systems posed by Shor's algorithm \cite{Shor} has generated considerable interest in post-quantum cryptosystems, namely systems that remain secure in the presence of a quantum adversary. Then, with quantum computers, Shor's algorithm factors an RSA public key $n$ almost as quickly as the legitimate RSA user can decrypt. It also causes an exponential speed-up when solving the discrete logarithm problem (DLP) and elliptic curve discrete logarithm problem (ECDLP). That is, all the public-key cryptography deployed or standardized will be lapsed. To insure against this risk posed by quantum computers, cryptography
+researchers have developed alternative public-key cryptography algorithms called
+post-quantum algorithms that would resist quantum computers. In 2017 the US standardization
+agency NIST (National Institute of Standard and Technology) began a process to solicit, evaluate, and standardize one or more quantum-resistant public-key cryptographic algorithms. Thereby, in order to keep RSA also in use D.J. Bernstein and al. proposed the post-quantum RSA \cite{pqRSA} in that competition. It is a variant of the cryptosystem RSA in order to stop Shor's algorithm by using extremely large RSA key. The private key here is many primes, say a list of $K$ (a power of 2) primes and the public key is the product of these primes. Although their submission didn't success for the second round, but it is a good idea to think about it to preserve the use of RSA in a post-quantum era. 
+
+However, it sounds important to adjust the RSA parameters to built post-quantum cryptosystems so that all known quantum attack algorithms are infeasible while signature and verification remain feasible. Since the storage problem no longer arises for a quantum computer, generating extremely large keys would not be surprising. This will allow all algorithms whose security is based on the problem of factorization of integers to remain usable in complete security.
+
+
+  Our goal is to keep RSA still on use in a post-quantum era by generating extremely large keys to establish a secure signature scheme called post-quantum PSS (pqPSS). Its security relatively close to that of RSA will be proven in the random oracle model even in the presence of an attacker that has to quantum computer.
+  
+  
+Security proof of signature scheme generally proceeds by demonstrating that if a polynomial-time adversary $\mathcal{A}$ is able to break the signature scheme, it can be used by a reduction algorithm $\mathcal{R}$ to invert in polynomial time some related one-way-function.\\
+Given an attacker $\mathcal{A}$  which is able to break the signature in time $\tau_\mathcal{A}$ with success probability at least $\varepsilon_\mathcal{A}$, for the reduction proof, $\mathcal{R}$  must simulate the environment of $\mathcal{A}$ and solves the problem (invert the one way function) with time $\tau_\mathcal{R} \geq  \tau_\mathcal{A} $ and success probability
+$\varepsilon_\mathcal{R} \leq \varepsilon_\mathcal{A}$.\\
+For tightness of the reduction it is required to have $\varepsilon_\mathcal{R} \approx \varepsilon_\mathcal{A}$ and $\tau_\mathcal{R} \approx \tau_\mathcal{A} + polynom(k)$ where $k$ is a security parameter.
+
+
+\paragraph{Related works:}
+In order to strengthen the Full Domain Hash signature scheme, Bellare ang Rogaway, in \cite{Bellare2} proposed the probabilistic Signature Scheme (PSS). The security of this scheme can be tightly related to that of RSA. Roughly speaking, they shown that if RSA is $(\tau_\mathcal{R},\varepsilon_\mathcal{R})$-secure then, given $q_{sig}$ and $q_H$, PSS is $(\tau_\mathcal{A},q_{sig},q_{H},\varepsilon_\mathcal{A})$-secure for $\tau_{A}=\tau_{R}-poly(q_{sig},q_{H},k)$ and $\varepsilon_{A}=\varepsilon_{R}-o(1)$. Here $o(1)$ denotes a function exponentially small in $k_0$ and $k_1$ (another parameter of the scheme) and poly denotes a specific polynomial.\\
+Probabilistic Signature Scheme with message Recovery (PSS-R) is a variant of PSS and was also proposed by Bellare and Rogaway \cite{Bellare2}.  The goal is to save on bandwidth. Rather than transmit the message $m$ and its signature $s$, a single ``enhanced signature'' $\sigma$, of length $|m|+|s|$, is transmitted. The verifier will be able to to recover $m$ from $\sigma$ and simultaneously check the authenticity.\\
+In \cite{Coron-GHR-PSS}, Coron revisits PSS and proves that it has a  tight security reduction under an appropriate choice of the values of some parameters ($k_{0}, k_{1}$) related to the size of the two hash functions used by PSS.\\
+In practice, Coron proposes, in theorem 4 of \cite{Coron-GHR-PSS}, a security reduction where the reduction algorithm  $\mathcal{R}$ will provide a perfect simulation and $(\varepsilon_{\mathcal{R}}, \tau_{\mathcal{R}})$-solves RSA trapdoor permutation with success probability $\varepsilon_\mathcal{R}=\frac{\varepsilon_\mathcal{A}-2.(q_H+q_{sig})^2.2^{-k_1}}{(1+6.q_{sig}.2^{-k_0})}$ and time bound $\tau_{\mathcal{R}}= \tau_{\mathcal{A}} + (q_{h}+q_{sig})k_{1}\mathcal{O}(k^{3})$. \\
+PSS-R is a variant of PSS with message recovery. It has the same security reduction and the same level security than PSS (see \cite{Coron-GHR-PSS}).\\
+In 2002, Dodis and Reyzin in \cite{Dodis}, generalizing Coron's work, show that a similar result holds for any trapdoor
+ permutation induced by a family of claw-free permutations. They show that a tight security reduction is impossible for RSA-FDH, RSA-PFDH and PSS-R with a small random. Moreover they show that this the case for any signature scheme outputting $sign(m)=\big(f^{-1}(\mathcal{RO}(m))\big)$ or $sign_{r}(m)=\big(f^{-1}(\mathcal{RO}(m, r)), r\big)$ [where $f^{-1}$ is the inverse of the trapdoor permutation, $m$ is the message and $r$ is a random], if the scheme is to be analyzed with a general "black-box" trapdoor permutation $f$.\\
+In 2005, Dodis, Reyzin and Pietrzak in \cite{Dodis2},  using previous work of Dodis and al., prove that one can't hope to prove  $sign(m)=\big(f^{-1}(\mathcal{RO}(m))\big)$ secure under any assumption which is satisfied by random permutations. Pietrzak tells that there work does not mean that  RSA-FDH with SHA1  is insecure,  but it is just impossible to prove it (with a tight security reduction).\\
+
+\paragraph{Contributions:}
+In this paper, we propose the post-quantum version of the probabilistic signature scheme PSS-R.  A random salt is generated to compute the exponentiation in RSA trapdoor permutation at each signature.
+
+
+The reduction algorithm of pqPSS have: succeeds with probability $\varepsilon_{\mathcal{R}} =\varepsilon_{\mathcal{A}}(1-\frac{1}{2^{|r|}})$ and time bound is given by $\tau_{\mathcal{R}}\leq \tau_{\mathcal{A}} + q_{T}\mathcal{O}(1) + q_{G}(q_{H}+q_{T})\mathcal{O}(1)+ (q_{H}+q_{sig}+2)\mathcal{O}(k^{3})$ where $2^{|r|}$ is the number of random allowed to use for exponentiation in SPSS signature.
+
+
+To have this good success probability we use signature with random such that the trapdoor permutation are randomly chosen and inverted at each signature; namely, the general form of our signature is  $sign_{r}(m)=\big(f_{r}^{-1}(\mathcal{RO}(m, r)), r\big)$ or $sign_{f}(m)=\big(f^{-1}(\mathcal{RO}(m)), f\big)$.
+
+
+We remark that our  security reduction for pqPSS signature scheme is tight (which means that it is equivalent  to RSA). In this case, we see that with a random of $5$ bits, we have $\varepsilon_{\mathcal{R}}=0.96875 \ \varepsilon_{\mathcal{A}}$ where $\varepsilon_{\mathcal{R}}$  is the success probability of an algorithm $\mathcal{R}$ that is able to break RSA by using an attacker $\mathcal{A}$ that breaks pqPSS with probability $\varepsilon_{\mathcal{A}}$. But for PSS-R, it is necessary to use  random with size greater than $\log_{2}q_{sig}+8$ ($\geq 38$) where $q_{sig}$ is the number of signatures queries, in order to have $\varepsilon_{\mathcal{R}}=1.04 \ \varepsilon_{\mathcal{A}}$.
+
+We remark also that the success  probability of the simulation is independent from the number of signing and hashing oracles queries. For pqPSS, it is possible to sign and recover a message with a large size while keeping the size of the random salt also large; but this fact is not possible for PSS-R. This new signature is more secure than PSS-R relatively to all known reductions; but it is also more slower.
+
+\paragraph{Outline:} This pape is organised as follows:
+\begin{itemize}
+\item In section \ref{sect:2}, we recall some preliminaries on security model ~\ref{sec:one:1}, on signature scheme~\ref{sec:one:2} and on post-quantum RSA problem~\ref{sec:one:3}.
+\item In section~\ref{sec:two}, we propose pqPSS which is a post-quantum version of RSA-PSS-R signature scheme with a random exponent for RSA's trapdoor in subsection~\ref{sec:two:1} and show its security proof in subsection~\ref{sec:two:2}.
+\end{itemize}
+
+
+\section{Preliminaries}\label{sect:2}
+%=============================================================================
+In this section, we recall some definitions and known results about signatures.
+Definitions, basic notations and classical results are followed in "Introduction to Modern Cryptography"~\cite{Katz}
+of Katz and Lindell, and  in "Provable Security for Public Key Schemes" of Pointcheval~\cite{Pointcheval}.
+
+%=============================================================================
+\subsection{Security model}\label{sec:one:1}
+%=============================================================================
+
+\paragraph{The Random Oracle Model:}
+
+For any constant $k$, a random oracle is a function $F_{rand}$ selected randomly in the set $\mathcal{F}_{k}$ of functions from $\{0,1\}^{*}$ to $\{0,1\}^{k}$.
+
+\vspace{0.2cm}
+
+\paragraph{Proof in the Random Oracle Model:}
+
+In random oracle model (see \cite{Bellare1} and \cite{Canetti}):
+\begin{itemize}
+\item We assume that the hash function is a random function i.e in the simulation process, the hash function is replaced by a random oracle which outputs a random value for each new input;
+\item The only way to compute the hash function, is to query the oracle hash;
+\item The reduction algorithm $\mathcal{R}$ must simulate the  environment of the attacker $\mathcal{A}$ with her public key only;
+\item  When the attacker $\mathcal{A}$ requests the oracle hash,
+ the reduction algorithm $\mathcal{R}$ can choose the random to return as digest; hence $\mathcal{R}$
+is able to embed the challenge (any information which able $\mathcal{R}$ to to invert the related one way function at the end of the game)   of his choice in the answer of the oracle hash to the requests of  $\mathcal{A}$.
+\item  At the end of the simulation, if the attacker $\mathcal{A}$ output valid
+ forgery (which be never returned by the oracle signature) then $\mathcal{R}$
+ must able to invert the related one way function with a good tightness.
+\end{itemize}
+
+\vspace{0.2cm}
+
+\paragraph{Significance of a Proof in the Random Oracle Model:}
+
+It is known that a proof in the random oracle model does not imply that the scheme is secure in the real
+world (Canetti, Goldreich and Halevi,  98) in \cite{Canetti}, it is  widely believed to be an acceptable engineering principle to design provably secure schemes in random oracle model.
+
+%=============================================================================
+\subsection{Signature and security model}\label{sec:one:2}
+%=============================================================================
+
+\paragraph{Randomized Signature Schemes:}
+
+A Randomized signature scheme is a tuple of the following algorithms:
+
+\underline{Key Generation (Genkey)}: with input a security parameter $k$, the key generation algorithm outputs a pair of keys $(p_{key}, s_{key})$.
+
+
+\underline{Signature algorithm (Sig):}
+
+- with input a security parameter $k$, the signing algorithm outputs a random $r$;
+
+- with input $(s_{key}, m,r)$, the signing algorithm  produces a signature $\sigma$.
+
+\underline{Verification (Ver):}  with input $(m, \sigma, p_{key})$, the verification algorithm returns $1$ if the signature is valid and $0$ otherwise.
+
+
+\paragraph{Security of Randomized Signature Schemes:}
+
+Goldwasser, Micali and Rivest (in 1988)  in \cite{Goldwasser}, introduce the basic security notion for signatures called "existential unforgeability with respect to adaptive chosen-message attacks".
+
+For this, a reduction algorithm $\mathcal{R}$ and an attacker $\mathcal{A}$, simulate the following game
+
+\underline{Setup}: $\mathcal{R}$ runs the algorithm Genkey with a security parameter $k$ as input, to obtain the public key $p_{key}$ and the secret key $s_{key}$, and gives $p_{key}$ to the adversary.
+
+\underline{Queries}: Proceeding adaptively, $\mathcal{A}$ may request a signature on any message  $m \in  \mathcal{M}$
+ (multiple requests of the same message are allowed) and $\mathcal{R}$ will respond with $(m, r,  \sigma)$ where $\sigma= Sig(s_{key}, m, r)$ and $r$ is a random. Let $Hist(\mathcal{S})$ be the signing data base (=set of signatures already outputted by the oracle signature to the queries of the  $\mathcal{A}$).
+
+\underline{Output}: Eventually, $\mathcal{A}$ will output a pair $(m, r,  \sigma)$ and is said to win the game
+ if $Ver(p_{key}, m, r, \sigma)=1$ and if $ (m, r,  \sigma) \notin Hist(\mathcal{S})$ (this last condition force the attacker $\mathcal{A}$ to output his own forgery).
+
+
+The probability that  $\mathcal{A}$ wins in the above game is denoted  $Adv\mathcal{A}$.
+
+\paragraph{Unforgeability against Adaptive Chosen Message Attacks (EUF-CMA):}  A signature scheme (Genkey, Sig,Ver)
+is existentially unforgeable with respect to adaptive chosen message attacks if for all probabilistic polynomial
+ time attacker $\mathcal{A}$, $Adv\mathcal{A}$ is negligible in  the security parameter $k$.
+
+\paragraph{BR-CMA:} This adversary model is CMA where the number of random used by the probabilistic signature algorithm is fixed, says $D$. Hence the signer cannot sign (and outputs distinct values) the same message more than $D$ times.
+
+%=============================================================================
+\subsection{Post quantum RSA }\label{sec:one:3}
+%=============================================================================
+Post quantum RSA consists of adjusting RSA parameters in order to make extremely large keys which will resist power of quantum computers. The idea is to use many small primes which constitute the secret key and their product gives the public key. Clearly, a user generates $K$ primes $q_1,q_2,...,q_K$ of the form $q_i=2p_i^{\beta_i}+1$, where $ 1\leq i\leq K$ and establishes $n=\prod_{i=0}^{K}{q_i}$.\\
+Now for a given pqRSA modulus  $n$, an integer $e$ coprime with $\varphi (n)=(q_1-1)(q_2-1)...(q_K-1)$ and $z \in (\frac{\mathbb{Z}}{n\mathbb{Z}})^{*}$, find $x$ such that $x^{e} = z  \mod n$ is the pqRSA problem. Then, an algorithm $\mathcal{R}$ is said to $(\tau_{\mathcal{R}} , \varepsilon_{\mathcal{R}} )$-solve the pqRSA
+problem, if in at most $\tau_{\mathcal{R}}$ operations, $Pr \lbrace (n,e) \leftarrow RSA(1^{k} ), z \leftarrow (\frac{\mathbb{Z}}{n\mathbb{Z}})^{*} , x \leftarrow \mathcal{R}(n, e, z), x^{e} = z \mod n\rbrace \geq \varepsilon_{\mathcal{R}} $, where the probability is taken over the distribution of $(n, z)$ and over $\mathcal{\mathcal{R}}$'s  random tapes.
+
+
+\section{On post quantum PSS signature with a tight reduction}\label{sec:two}
+%=============================================================================
+
+In this section,  we propose a new signature called pqPSS which is a variant of PSS-R. Under RSA
+assumption, our scheme is proven EUF-BR-CMA secure in the random oracle model. The main idea is to generate a random exponent for each signature.
+
+%=============================================================================
+\subsection{Signature process}\label{sec:two:1}
+%=============================================================================
+Our signature scheme pqPSS is parametrized by two integers $k_e$ and $k_w$ such that $k_w+k_e \leq k-1$, where $k$ is the security parameter. It works as follows:
+ \vspace{0.2cm}
+
+\paragraph{Key generation:}  $G_{key}(1^{k})$ runs $\mathcal{R}\mathcal{S}\mathcal{A}(1^k)$ to obtain the modulus $n=q_1\times q_2\times ...\times q_K$, where $q_i=2p_i^{\beta _i}+1$ is a prime integer, and  and outputs $(p_{key},s_{key})$, where $p_{key}=n$ and $s_{key}=(q_1,q_2,...,q_K)$. The signing and verifying algorithms make use the following hash functions:\\
+\begin{center}
+$T:\{0,1\}^{k_r}\stackrel{}{\longmapsto}\{0,1\}^{k_e}\cap \mathbb{N}_{odd}$, \ \ \ \ $H:\{0,1\}^{k_m+k_e}\stackrel{}{\longmapsto}\{0,1\}^{k_w}$ \\ and $G:\{0,1\}^{k_e+k_w}\stackrel{}{\longmapsto}\{0,1\}^{k-k_w-1}$
+\end{center}
+where $\mathbb{N}_{odd}$ is the set of odd integers and $k_m$ is the size of the message $m$ to be signed. We suggest that $k_m=k-k_w-1$ in order to be able to fold the entire message in the signature.
+
+%We also use two functions: $g_1$ which on input $\omega\in \{0,1\}^{k_\omega}$ outputs the first $k_r$ bits of $G(\omega)$ and $g_2$ which on input $\omega\in \{0,1\}^{k_\omega}$ outputs the remaining $k-k_r-k_\omega-1$ bits of $G(\omega)$.
+
+\begin{remark} To build $T$, one can proceed as follows.
+
+Let $ T': \{0, 1\}^{k_{r}} \rightarrow  \{0,1\}^{k_{e}-2}$ be a hash function, where $k_{e}$ is a security parameter. We
+define the hash function  $T$  by $T(x)=1||T'(x)||1 \in [0, n-1] \cap [ 2^{k_{e}}, 2^{k_{e}+1}[\cap \mathbb{N}_{odd} $ where $\mathbb{N}_{odd} $ is the set off odd integers.
+\end{remark}
+
+\begin{remark}
+Since $T(x)$ is an odd integer then, with a hight probability, $T(x)$ is coprime with $\varphi(n)=(q_1-1)(q_2-1)...(q_K-1)=2^Kp^{\beta_{1}}_{1}p^{\beta_{2}}_{2}...p^{\beta_{K}}_{K}$, because finding an odd integer which is not coprime with $\varphi(n)$, is equivalent to factoring $n$ (which is known to be difficult).
+\end{remark}
+
+\paragraph{Signature algorithm:}  $S(s_{key},  m)$\\
+To sign a message $m$, the signer proceeds as follows:
+\begin{enumerate}
+\item select a random $r\in\{0,1\}^{k_r}$, compute $e=T(r)$ and $d=e^{-1} \mod \varphi(n)$;
+\item compute $h=H(m||e), w=(0^{\ell}||r)\oplus h$, where $\ell$ is an integer such that $k_w=\ell +k_r$ and $m^*=G(e||w)\oplus m$;
+\item set $y= 0||w||m^*$;
+\item compute $\sigma = y^d \ mod \ n $ and output $(r,\sigma)$.
+\end{enumerate}
+
+\paragraph{Verification algorithm}  $V(p_{key},r,\sigma)$\\
+For a given signature $(r,\sigma)$, to verify, the verifier proceeds as follows:  
+\begin{enumerate}
+\item compute $e=T(r)$, $y= \sigma^e \ mod \ n$ and parse $y$ as $b||w||m^*$ ($b$ is the first bit of $y$,  $w$ the next $k_w$ bits and $m^*$ the remaining bits);
+\item compute $m= G(e||w)\oplus m^*$;
+\item compute $h=H(m||e)$ and  break up $w\oplus h$ as $(0^\ell||r)$, where $\ell$ is an integer, $r\in\{0,1\}^{k_r}$ such that $k_w=\ell+k_r$;
+\item if $h\oplus (0^{\ell}||r)=w$ and $b=0$ then return 1 and $m$
+else return 0.
+\end{enumerate}
+
+
+%=============================================================================
+\subsection{Security proof: Reduction in the random oracle model}\label{sec:two:2}
+%=============================================================================
+\begin{theorem}
+\label{theorem1}
+If there exists an attacker $\mathcal{A}$ that $(q_{T}, q_{H}, q_{G} , q_{sig} , \tau_{\mathcal{A}} ,\varepsilon_{\mathcal{A}} )$-solves EUF-BR-CMA(pqPSS), then there exists a reduction $\mathcal{R}$ simulating the environment of $\mathcal{A}$ in the random oracle model that $(\tau_{\mathcal{R}} ,\varepsilon_{\mathcal{R}} )$-solves RSA with  success  probability $\varepsilon_{\mathcal{R}} = \varepsilon_{\mathcal{A}}(1-\frac{1}{2^{|r|}}) $   and time bound $\tau_{\mathcal{R}}\leq \tau_{\mathcal{A}} + q_{T}\mathcal{O}(1) + q_{G}(q_{H}+q_{T})\mathcal{O}(1)+ (q_{H}+q_{sig}+2)\mathcal{O}(k^{3})$, where $|r|$ is the size of random  used for exponentiation,  $\mathcal{R}$ receives $q_{sig}$ signature queries, $q_{H}$, $q_{G}$ and $q_{T}$  queries respectively for the hash oracles $H$, $G$ and $T$ from  $\mathcal{A}$ and  $k$ is a security parameter.
+
+\end{theorem}
+
+The proof of the theorem will be detailed after the following discussion.
+
+\paragraph{Discussion:}
+\begin{enumerate}
+\item  \underline{Oracles queries}: Note that $q_{sig}$, $q_{G}$, $q_{T}$ and  $q_{H}$ do not modify the success probability but only the time bound in a polynomial way.
+
+ \item \underline{Random}:  If we want to consider the case where the random has different size, we can replace $2^{r}$ by $J$, where $J$ is the number of random used for signatures.
+
+\item  \underline{Security gap between pqPSS and RSA}: \\
+
+$\frac{\varepsilon_{\mathcal{R}}}{\varepsilon_{\mathcal{A}}}=1-\frac{1}{2^{|r|}}$ \ as a discrete function of the size of the random salt $r$ \\
+
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|}
+ \hline  %\hline or \cline{col1-col2} \cline{col3-col4} ...
+  $|r|$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9  & 10 \\
+ \hline
+   $\frac{\varepsilon_{\mathcal{R}}}{\varepsilon_{\mathcal{A}}}$ & 0.5 & 0.75 & 0.875 & 0.937 & 0.968 & 0.984 & 0.992 & 0.996 & 0.998 & 0.999 \\
+  \hline
+\end{tabular}
+\\
+
+In this table,  if $|r|\geq 4$, we see that $\varepsilon_{\mathcal{R}}$ is close to $\varepsilon_{\mathcal{A}}$.
+
+But in PSS (as in PSS-R) of Coron, it is proved that it is necessary to use  random with size grater than $\log_{2}q_{sig}+8 \geq 38$  (where $q_{sig}$ is the number of signing queries), in order to have $\varepsilon_{\mathcal{R}}=1.04 \ \varepsilon_{\mathcal{A}}$.
+
+Hence, this comparison shows that pqPSS is more secure than PSS-R.
+
+\item \underline{Bandwidth}: In PSS-R (PSS with message recovery) the goal is to save bandwidth such that the message is recoverable from the signature; hence it is not necessary to send the message separately.
+
+pqPSS is also a signature with a message recovery, but the signature outputs $(r,\sigma)$ instead of $(m,\sigma)$ as in PSS. Nevertheless it is better to output $(r,\sigma)$ than $(m,\sigma)$, because in general $|m|\gg |r|$
+
+
+\item \underline{Message recovery}: In PSS-R, the random salt $r$ and the message $m$ are embedded in the signature process via $r^*=g_1(w)\oplus r$ and $m^*=g_2(w)\oplus m$ where $g_1 $ is a function which on input $w\in\{0,1\}^{k_w}$ outputs a string of length $k_r$ and $g_2$ is a function which on input $w\in\{0,1\}^{k_w}$ outputs a string of length $k-k_r-k_w-1$. We have also $\sigma^e\mod n=0||w||r^*||m^*$. Hence if one fixes the size of $n$, $\omega$ and $m^*$, it is not possible to increase the size of $m$ without decreasing those of $r$.
+
+By comparison with pqPSS, we have the following.
+
+The random salt $r$ and the message $m$ are embedded in two different boxes, namely, $r$ is embedded in $w$ and $m$ is embedded in $m^*$ via $w=(0^{\ell}||r)\oplus H(m||e)$  and $m^*=m\oplus G(e||w)$, where $\sigma^{e}\mod n=0||w||m^*$. Hence if one fixes the size of $n$, $w$ and $m^*$, it is  possible to increase the size of $r$ without changing the size of $m$.%, namely we have $|m|=|m^*|+1$ and $4\leq|r|\leq |\omega|-1$.
+
+\end{enumerate}
+
+
+\textbf{Proof }  of the theorem \ref{theorem1}
+
+Our reduction $\mathcal{R}$ behaves as follows:
+ \begin{enumerate}
+  \item  $\mathcal{R}$ is given ($n \leftarrow RSA(1^{k}$ ), generates at random $v \leftarrow [0, n-1]\cap \mathbb{N}_{odd}$  and $y
+      \leftarrow \frac{\mathbb{Z}}{n\mathbb{Z}}^{*}$, as well as an attacker $\mathcal{A}$ that    $(q_{T}, q_{H}, q_{G}, q_{T}, q_{sig},
+      \tau_{\mathcal{A}}, \varepsilon_{\mathcal{A}} )$-solves  EUF-BR- CMA(pqPSS);
+ \item    $\mathcal{R}$ simulates $G_{key}$ and transmits some public key $pk=n$ to  $\mathcal{A}$;
+\item     $\mathcal{R}$ receives queries for $T$ from  $\mathcal{A}$: it will have to simulate $T$ at most $q_{T}$ times;
+\item     $\mathcal{R}$ receives queries for $G$ from  $\mathcal{A}$: it will have to simulate $G$ at most $q_{G}$ times;
+\item     $\mathcal{R}$ receives queries for $H$ from  $\mathcal{A}$: it will have to simulate $H$ at most $q_{H}$ times;
+\item     $\mathcal{R}$ receives signature queries from  $\mathcal{A}$: it will have to simulate a signing oracle at most $q_{sig}$ times;
+\item     $\mathcal{A}$ outputs a forgery $(e^{*}, \sigma_{*})$ for pqPSS,
+ \item    $\mathcal{R}$ simulates a verification of the forgery which is valid with probability $\varepsilon_{\mathcal{A}}$ ;
+ \item    $\mathcal{R}$ outputs $x$ such that $x^{v} = y \mod n$.
+\end{enumerate}
+
+\paragraph{Simulation of oracle key generation $\mathbf{G}_{key}$:} The reduction $\mathcal{R}$
+
+\begin{itemize}
+\item sets $Hist(S)=\emptyset$ (Signing oracle database);
+\item sets $Hist [T] = \emptyset $ (Oracle $\mathbf{T}$ database);
+\item sets $Hist [G] = \emptyset $ (Oracle $\mathbf{G}$ database);
+\item sets $Hist [H] = \emptyset $ (Oracle $\mathbf{H}$ database);
+\item sends the pqPSS public key $n$ to $\mathcal{A}$;
+\item selects $N$ (with $N<2^{|r|}$) random integers  $i_{1},...., i_{N} \in [1, 2^{|r|}]$ where $2^{|r|}$ is the number
+ of random to be used for exponentiation in signature process; and puts $Z=\{i_{1},...., i_{N}\}$.
+\end{itemize}
+
+\paragraph{Simulation of oracle hash $\mathbf{T}$:} when $\mathcal{A}$ makes a $T$-oracle query with a random  $r_{j}$, $1\leq j\leq 2^{|r|}$,
+
+\begin{itemize}
+ \item    $\mathcal{R}$ checks in $Hist [T]$, if $r_{j}$ was queried in the past. If $T(r_{j})$, is already defined to a value $T_{r_{j}}$,  returned this value.
+   \item If $j \notin Z$, $\mathcal{R}$ picks  at random  $t_{r_{j}} \leftarrow [0, n-1]\cap \mathbb{N}_{odd}$ and defines $T(r_{j})=t_{r_{j}}$.
+   \item  If $j \in Z$,  $\mathcal{R}$ picks  at random  $ t'_{r_{j}} \leftarrow [0, n-1]\cap \mathbb{N}_{odd}$ and defines $T(r_{j})=vt'_{r_{j}}$.
+ \item  $\mathcal{R}$   memorizes $\big(r_{j}, T(r_{j})\big)$ in $Hist [T]$.
+\end{itemize}
+
+
+\paragraph{Simulation of oracle hash $\mathbf{H}$:} when $\mathcal{A}$ makes a $H$-oracle query with a couple of message and random  $(m,e)$, \ $\mathcal{R}$,
+
+\begin{itemize}
+
+ \item checks in $Hist [H]$, if $(m,e)$ was queried in the past. If $ H(m||e)$ is already defined
+   as $h_{m||e}$,  returned $ h_{m||e}$ to $\mathcal{A}$;
+ \item checks in $Hist [T]$, if $e$ was  computed in the past;
+\item If not, picks a random $h_{0}\in\{0,1\}^{k_w}$, sets  $H(m||e) =h_{0}$ and returns $h_0$  to $\mathcal{A}$;
+ \item It $e$ was already computed $\mathcal{R}$ picks the unique $(r_{j},e_{j}) \in Hist[T]$ such that $e=e_{j}$;
+
+ \item if $j \notin Z$, $\mathcal{R}$;
+ \begin{itemize}
+    \item Repeats $x_{j,m}\overset{\text{R}}{\longleftarrow}\mathbb{Z}_n^*, \ \ y_{j,m}\longleftarrow  x_{j,m}^{e_j}$ until the first bit of  $y_{j,m}$ is 0 and breaks $y_{j,m}$ as  such that $ 0||r_j||w_{j,m}||m^*_{j,m}$;
+  \item  Sets $H(m||e)=w_{j,m}\oplus (0^{\ell}||r_j)$ and return this value to $\mathcal{A}$;
+  \item    $\mathcal{R}$   memorizes $(m, r_{j}, e_{j}, m^*_{j,m},  x_{j,m},  \omega_{j,m})$ in $Hist [H]$
+  \end{itemize}
+   \item  if $j \in Z$,  $\mathcal{R}$;
+    \begin{itemize}
+   \item     picks $x_{j,m}\overset{\text{R}}{\longleftarrow}\mathbb{Z}_n^*$ such that $y(x_{j,m})^{e_{j}} \mod n= 0||r_j||w_{j,m} ||m^*_{j,m} $;
+    \item       defines and returns  $H(m||e_{j}) = w_{j,m}\oplus (0^{\ell}||r_{j})$ to $\mathcal{A}$;
+    \item     memorizes $(m, r_{j}, e_{j}, m^*_{j,m},  \perp, y)$ in $Hist [H]$.
+\end{itemize}
+
+\end{itemize}
+
+\paragraph{Simulation of oracle hash $\mathbf{G}$:}
+when $\mathcal{A}$ makes a $G$-oracle query  $(e, w)$, $\mathcal{R}$:
+
+
+\begin{itemize}
+ \item checks in $Hist [T]$, if $e$ was was computed in the past;
+\item if not, randomly pick $g_{0}\in\{0,1\}^{k-k_w-k_e-1}$, sets  $G(e||w) =g_{0}$ and  returns $g_0$ to $\mathcal{A}$;
+ \item picks the unique $(r_{j},e_{j}) \in Hist[T]$ such that $e=e_{j}$;
+\item checks in $Hist[H]$, if there exists $(m, r_{j},  e_{j},  \alpha, \beta, \gamma)$ such that $\gamma=w$;
+\item if not, randomly picks $g_{1}\in\{0,1\}^{k-k_w-k_e-1}$, sets $G(e||w) =g_{1}$ and returns $g_1$ to $\mathcal{A}$;
+
+ \item  picks the unique $(m, r_{j},  e_{j},  \alpha, \beta, \omega)$ in $Hist [H]$, defines and returns  $G(e_{j}||w) =m\oplus \alpha$ to $\mathcal{A}$;
+\item     memorizes $\big(r_{j}, e_{j}, w, m\oplus \alpha\big)$ in $Hist [G]$.
+\end{itemize}
+
+
+\paragraph{Simulation of oracle signature $\mathbf{S^{T,H,G}}$:} when $\mathcal{A }$ requests the signature of some message $m$, $\mathcal{R}$,
+   \begin{itemize}
+\item selects  randomly $j$ in $[1,2^{|r|}]\setminus Z$, after  $\mathcal{R}$;
+ \item invokes its own simulation of $T$, $H$ and $G$ to compute $e_{j}=T(r_{j})$, $H(m||e_{j})$;
+
+  \item searches the unique $(m, r_{j},  e_{j},  \alpha, \beta, \omega)$ in $Hist [H]$ with $w =H(m||e_{j})\oplus (0^{\ell}||r_{j})$ and $\alpha  =m\oplus G(e_{j}||w)$ and returns $(e_{j},\beta) $ as the signature;
+
+  \item  stores $(e_{j},\beta) $ in oracle database $Hist [S]$.
+\end{itemize}
+
+
+\paragraph{Simulation of verification $\mathbf{ V^{T,H,G}}$:} Given a signature $(e, \sigma)$, $\mathcal{R}$
+
+ \begin{itemize}
+ \item computes $b||e||w||m^* = \sigma^{e} \mod n$;
+ \item if $b = 1$ outputs $0$;
+ \item invokes the simulation of $G$ to get $G(e||w)$;
+ \item sets $m= m^*\oplus G(w||e)$;
+ \item invokes the simulation of  $H$ to get  $h=H(m||e)$ and computes $0^{\ell}||r=h\oplus w$;
+ \item invokes the simulation of  $T$ to get  $T(r)$;
+ \item if $e=T(r)$   outputs $1$ (and $m$)
+otherwise outputs $0$.
+\end{itemize}
+
+\paragraph{Final Outcome:} assume that at the end of the game, $\mathcal{A}$ outputs $(e^{*}, \sigma_{*})$ as a
+forgery. Then,
+ \begin{itemize}
+ \item     $\mathcal{R}$ simulates $V^{T,H,G}$ to verify if $(e^{*}, \sigma_{*})$ is a valid forgery;
+\item if the verification returns $0$ or $(e^{*}, \sigma_{*}) \in  Hist(S)$,  $\mathcal{R}$ aborts;
+\item $\sigma_{*}^{e^{*}} \mod n = 0||w||m^*$;
+\item set $m = m^*\oplus  G(e^{*}||w)$;
+\item Compute $h=H(m||e^{*})$ and set $0^{\ell}||r = h\oplus w$;
+\item search for $(m, r, e^{*}, m^*, x, w) \in Hist [H]$; there exists $j\in [1,2^{|r|}]$ such that $r=r_{j_{0}}$ and $e^{*}=e_{j_{0}}$;
+ \item if $j_{0} \notin Z$, $\mathcal{R}$ aborts;
+  \item     $\mathcal{R}$ sets $ x = \big(\dfrac{\sigma_{*}}{x_{j_{0},m}}\big)^{e_{j_{0}}/v}$  (note that $x_{j_{0},m}$ is coprime with $n$ with a hight probability because of the intractability of the factorization of a RSA-modulus, hence $x_{j_{0},m}$ is invertible);
+  \item    $\mathcal{R}$ outputs $x$.
+\end{itemize}
+
+
+\paragraph{Tightness of this reduction:}
+\begin{itemize}
+ \item  $\mathcal{R}$ perfectly simulates the scheme (oracles key generation,  hash, signature and verification) with probability $1$.
+ \item $\mathcal{A}$ then outputs  $(e^{*}, \sigma_{*}) $ with probability at least  $\varepsilon_{\mathcal{A}}$
+after time $\tau_{\mathcal{A}}$,
+ \item  since $Z$ is independent from $\mathcal{A}$, the event $j_{0} \in Z $ occurs with probability $\frac{N}{2^{|r|}}$.
+\item Hence $\mathcal{R}$ then outputs a solution $x$ such that $x^{v} = y \mod n$ with probability one.
+ \end{itemize}
+Summing up, $\mathcal{R}$ succeeds with probability $\varepsilon_{\mathcal{R}} = \frac{N}{2^{|r|}}.\varepsilon_{\mathcal{A}} $
+  and time bound is given by
+  
+  \vspace{0.2cm}
+  
+   $\tau_{\mathcal{R}}\leq \tau_{\mathcal{A}} + q_{T}\mathcal{O}(1) + q_{G}(q_{H}+q_{T})\mathcal{O}(1)+ (q_{H}+q_{sig}+2)\mathcal{O}(k^{3})$
+   
+   \vspace{0.2cm}
+   
+ where $2^{|r|}$ is the number of random allowed to use for exponentiation in SPSS signature.
+
+To have $\varepsilon_{\mathcal{R}} = \varepsilon_{\mathcal{A}}(1-\frac{1}{2^{|r|}}) $ it will suffice to choose the maximal value of $N=2^{|r|}-1$.
+\section{Conclusion}
+We have described a new signature scheme whose security can be proven in the random oracle model for both quantum and classical computers. This is a variant of PSS-R designed by Bellare and Rogaway but with a random salt generated to compute the RSA exponentiation for each signature. Our security reduction is a better security proof for PSS-R, in which a much shorter random salt (a random of size 5) is sufficient to achieve the same security. 
+
+
+
+
+
+
+
+\begin{thebibliography}{10}
+
+\bibitem{Bellare1} M. Bellare and P. Rogaway, \emph{Random oracles are practical: a paradigm for designing
+efficient protocols}. Proceedings of the First Annual Conference on Computer and Communications Security, ACM, 1993.
+
+\bibitem{Bellare2} M. Bellare and P. Rogaway, \emph{The Exact security of digital signatures: How to sign
+with rsa and Rabin}, Proceedings of Eurocrypt 1996, lncs, vol. 1070, Springer-Verlag, 1996, pp. 399-416.
+
+\bibitem{Canetti} R. Canetti, O. Goldreich and S. Halevi, \emph{The random oracle methodology}, revisited,
+STOC' 98, ACM, 1998.
+
+\bibitem{Coron-FDH} J. S. Coron \emph{On the exact security of Full Domain Hash} Proccedin of Crypto's 2000, LNCS vol 1880,  Springer Verlag 2000, pp. 229-235.
+
+\bibitem{Coron-GHR-PSS} J.S. Coron,\emph{ Optimal security proofs for pss and other signature schemes}, Proceed-
+ings of Eurocrypt'02, lncs, vol. 2332, Springer-Verlag, 2002, pp. 272-287.
+
+\bibitem{Coron4} J.S. Coron, A. Joux, D. Naccache and P. Paillier, \emph{Fault Attacks on Randomized RSA Signatures}. To appear at CHES 2009. Available at http://www.jscoron.fr/publications.html.
+
+\bibitem{Coron-PSS-fault} J.S. Coron and A. Mandal, \emph{PSS is Secure against Random Fault Attacks} vavilable at Conference: Advances in Cryptology - ASIACRYPT 2009, 15th International Conference on the Theory and Application of Cryptology and Information Security, Tokyo, Japan, December 6-10, 2009. Proceedings.
+
+\bibitem{Dodis} Y. Dodis and L. Reyzin, \emph{On the power of claw-free permutations}. In Security in Communication Networks (SCN 2002), volume 2576 of Lecture Notes in Computer Science, pages 55-73. Springer, 2003.
+
+
+\bibitem{Dodis2} Y. Dodis,  R.Oliveira and K. Pietrzak, \emph{On the Generic Insecurity of Full-Domain Hash}. Advances in Cryptology-CRYPTO 2005. 25th Annual International Cryptology Conference, Santa Barbara, California, USA, August 14-18, 2005. Proceedings.
+
+\bibitem{Goldwasser} S. Goldwasser, S. Micali and R. Rivest, \emph{A digital signature scheme secure against
+adaptive chosen-message attacks}, SIAM Journal of computing, 17(2), pp. 281-308, April 1988.
+
+\bibitem{Menezes} A.J. Menezes, P.C. van Oorschot, and S.A. Vanstone, \emph{Handbook of Applied Cryptography}. CRC Press, 1996.
+
+\bibitem{pointcheval} D. Pointcheval, \emph{Provable Security for Public Key Schemes} Advanced Course on Contemporary Cryptology, pages 133-189, June 2005. http://www.di.ens.fr/~pointche/pub.php?reference=Po04.
+
+
+\bibitem{Pointcheval} D. Pointcheval and J. Stern, \emph{Security Proofs for Signature Schemes} Advances in Cryptology  Proceedings of EUROCRYPT '96 (may 12-16, 1996, Zaragoza, Spain) U. Maurer, Ed. Springer-Verlag, LNCS 1070, pages 387-398.
+
+\bibitem{Rivest} R. Rivest, A. Shamir and L. Adleman, \emph{A method for obtaining digital signatures and public key cryptosystems}, CACM 21, 1978.
+
+\bibitem{Katz} J. Katz and Y. Lindell, \emph{Introduction to Modern Cryptography}. Chapman $\&$ Hall/CRC Cryp-tography and Network Security. Chapman $\&$ Hall/CRC, Boca Raton, FL, 2008
+\bibitem{pqRSA}D. J. Bernstein and al.
+\emph{Post quantum RSA},
+International Workshop on Post-Quantum Cryptography, 311-329, 2017.
+\bibitem{Shor} P. Shor,
+\emph{ Polynomial-Time Algorithms for Prime Factorization and Discrete Logarithms on a Quantum Computer},  SIAM J. Comput., 26 (5), 1997, pp.1484-1509. 
+\end{thebibliography}
+\end{document}
